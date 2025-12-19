@@ -51,42 +51,60 @@ return {
       return openai.handlers.form_tools(self, tools)
     end,
 
-    ---Set the format of the role and content for the messages from the chat buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
-    ---@return table
-    form_messages = function(self, messages)
-      messages = adapter_utils.merge_messages(messages)
-      messages = adapter_utils.merge_system_messages(messages)
+      ---Set the format of the role and content for the messages from the chat buffer
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
+      ---@return table
+      form_messages = function(self, messages)
+        messages = adapter_utils.merge_messages(messages)
+        messages = adapter_utils.merge_system_messages(messages)
 
-      messages = vim
-        .iter(messages)
-        :map(function(msg)
-          -- Ensure that all messages have a content field
-          local content = msg.content
-          if content and type(content) == "table" then
-            msg.content = table.concat(content, "\n")
-          elseif not content then
-            msg.content = ""
-          end
+        messages = vim
+          .iter(messages)
+          :map(function(msg)
+            local outgoing = vim.deepcopy(msg)
 
-          -- Process tools
-          if msg.tools then
-            if msg.tools.calls then
-              msg.tool_calls = msg.tools.calls
+            -- Ensure that all messages have a content field
+            local content = outgoing.content
+            if content and type(content) == "table" then
+              outgoing.content = table.concat(content, "\n")
+            elseif not content then
+              outgoing.content = ""
             end
-            if msg.tools.call_id then
-              msg.tool_call_id = msg.tools.call_id
+
+            -- Process tools
+            if outgoing.tools then
+              if outgoing.tools.calls then
+                outgoing.tool_calls = outgoing.tools.calls
+              end
+              if outgoing.tools.call_id then
+                outgoing.tool_call_id = outgoing.tools.call_id
+              end
+              outgoing.tools = nil
             end
-            msg.tools = nil
-          end
 
-          return msg
-        end)
-        :totable()
+            -- Process reasoning content (required for tool use with reasoning mode)
+            local reasoning_content = outgoing.reasoning_content
+            if outgoing.reasoning and outgoing.reasoning.content then
+              reasoning_content = outgoing.reasoning.content
+            end
 
-      return { messages = messages }
-    end,
+            if outgoing.role == "assistant" and outgoing.tool_calls then
+              outgoing.reasoning_content = reasoning_content or ""
+            elseif reasoning_content then
+              outgoing.reasoning_content = reasoning_content
+            else
+              outgoing.reasoning_content = nil
+            end
+
+            outgoing.reasoning = nil
+
+            return outgoing
+          end)
+          :totable()
+
+        return { messages = messages }
+      end,
 
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.HTTPAdapter
@@ -131,13 +149,13 @@ return {
       desc = "ID of the model to use.",
       ---@type string|fun(): string
       default = "deepseek-reasoner",
-      choices = {
-        ["deepseek-reasoner"] = {
-          formatted_name = "DeepSeek Reasoner",
-          opts = { can_reason = true, can_use_tools = false },
+        choices = {
+          ["deepseek-reasoner"] = {
+            formatted_name = "DeepSeek Reasoner",
+            opts = { can_reason = true, can_use_tools = true },
+          },
+          ["deepseek-chat"] = { formatted_name = "DeepSeek Chat", opts = { can_use_tools = true } },
         },
-        ["deepseek-chat"] = { formatted_name = "DeepSeek Chat", opts = { can_use_tools = true } },
-      },
     },
     ---@type CodeCompanion.Schema
     temperature = {
