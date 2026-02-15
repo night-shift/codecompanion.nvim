@@ -1,5 +1,98 @@
 # Changelog
 
+## [18.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.5.1...v18.6.0) (2026-02-09)
+
+
+### Features
+
+* **adapters:** add support for Kiro via ACP ([#2729](https://github.com/olimorris/codecompanion.nvim/issues/2729)) ([1c9a92c](https://github.com/olimorris/codecompanion.nvim/commit/1c9a92c3a30115a1236f19df3bced12481f4feb8))
+* **adapters:** amend [#2729](https://github.com/olimorris/codecompanion.nvim/issues/2729) to add Kiro adapter ([#2730](https://github.com/olimorris/codecompanion.nvim/issues/2730)) ([dfb0ca9](https://github.com/olimorris/codecompanion.nvim/commit/dfb0ca928c439b65b1ac33758d90a9bc49c72138))
+
+
+### Bug Fixes
+
+* **acp:** kimi cli authentication failure ([#2711](https://github.com/olimorris/codecompanion.nvim/issues/2711)) ([69c26d2](https://github.com/olimorris/codecompanion.nvim/commit/69c26d2eb2f14361844af0ba36ae13a4b60dcc2d))
+* **adapters:** anthropic sending empty messages ([#2700](https://github.com/olimorris/codecompanion.nvim/issues/2700)) ([2245532](https://github.com/olimorris/codecompanion.nvim/commit/2245532d204e6a5a54abdc369f8b814689bf98c2))
+* **adapters:** openai_responses images merged as text ([#2733](https://github.com/olimorris/codecompanion.nvim/issues/2733)) ([bb571be](https://github.com/olimorris/codecompanion.nvim/commit/bb571be895f715c6e3ce3c42cdb2059408725246))
+* **ui:** window width is always calculated ([#2708](https://github.com/olimorris/codecompanion.nvim/issues/2708)) ([517f82e](https://github.com/olimorris/codecompanion.nvim/commit/517f82e8d04dd1b8a2db4af2c110bd492784ce41))
+* **utils:** escape percent signs in placeholder replacements ([#2736](https://github.com/olimorris/codecompanion.nvim/issues/2736)) ([294eddc](https://github.com/olimorris/codecompanion.nvim/commit/294eddccf6672a46961ccf1d4fc84103432dd002))
+
+## [18.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.5.0...v18.5.1) (2026-01-24)
+
+
+### Bug Fixes
+
+* **adapters:** check for nil in `openai_responses` ([#2662](https://github.com/olimorris/codecompanion.nvim/issues/2662)) ([e22c043](https://github.com/olimorris/codecompanion.nvim/commit/e22c04336b5c56e3839bfebd6d88944f014f4b30))
+* **adapters:** copilot supported endpoints ([#2691](https://github.com/olimorris/codecompanion.nvim/issues/2691)) ([dd98466](https://github.com/olimorris/codecompanion.nvim/commit/dd98466a893abf499fbd69ab9526b2da7c094fb8))
+* **tools:** remove globals for better concurrent tool usage ([#2680](https://github.com/olimorris/codecompanion.nvim/issues/2680)) ([c9d74dd](https://github.com/olimorris/codecompanion.nvim/commit/c9d74dd667cf609b4f2064ae7f5471285b5356cb))
+
+## [18.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.4.1...v18.5.0) (2026-01-21)
+
+
+### Features
+
+* **ui:** better cursor scrolling in the chat ([#2670](https://github.com/olimorris/codecompanion.nvim/issues/2670)) ([6657e6f](https://github.com/olimorris/codecompanion.nvim/commit/6657e6fd594d3c9f6dd3ab9e26a0c76b8e7082e1))
+
+
+### Bug Fixes
+
+* **chat:** buffers with duplicate short_paths ([#2665](https://github.com/olimorris/codecompanion.nvim/issues/2665)) ([e0780fa](https://github.com/olimorris/codecompanion.nvim/commit/e0780fa9fda504ffb89307cabcb6cbe1ce8eb60c))
+
+## [18.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.4.0...v18.4.1) (2026-01-16)
+
+
+### Bug Fixes
+
+* **acp:** fire event when calling /mode command ([#2656](https://github.com/olimorris/codecompanion.nvim/issues/2656)) ([8ebbcc2](https://github.com/olimorris/codecompanion.nvim/commit/8ebbcc27d20e9ac6e7491de6ef9aac1fbf6277a2))
+* **adapters:** copilot log error ([#2663](https://github.com/olimorris/codecompanion.nvim/issues/2663)) ([6fa8338](https://github.com/olimorris/codecompanion.nvim/commit/6fa8338b4332d57c153b40205613c3c56736a255))
+* **adapters:** use custom headers in Ollama get_models ([#2644](https://github.com/olimorris/codecompanion.nvim/issues/2644)) ([9079ff9](https://github.com/olimorris/codecompanion.nvim/commit/9079ff9244d77eea3c0c5b63ce092c45b0eaa8d2)), closes [#2642](https://github.com/olimorris/codecompanion.nvim/issues/2642)
+
+## [18.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.2...v18.4.0) (2026-01-10)
+
+
+### Features
+
+* **acp:** select models and improved config ux ([#2641](https://github.com/olimorris/codecompanion.nvim/issues/2641)) ([c52042d](https://github.com/olimorris/codecompanion.nvim/commit/c52042d4ee2ba21fcb072678919735e013fb7943))
+
+
+### Bug Fixes
+
+* **adapters:** ensure Copilot models have correct capabilities ([#2638](https://github.com/olimorris/codecompanion.nvim/issues/2638)) ([b4d8040](https://github.com/olimorris/codecompanion.nvim/commit/b4d8040079dbbeea3d87fc594f6caa79b94fc427)), closes [#2637](https://github.com/olimorris/codecompanion.nvim/issues/2637)
+* **prompts:** allow symlinks for Markdown prompt files ([#2633](https://github.com/olimorris/codecompanion.nvim/issues/2633)) ([b1f2aaf](https://github.com/olimorris/codecompanion.nvim/commit/b1f2aaf9efe4251b4c77f82ded1cd9e33a025b42))
+* **prompts:** can comment out frontmatter ([8ec7628](https://github.com/olimorris/codecompanion.nvim/commit/8ec76289580e6e656f0827e0760aadbbf04062ad))
+
+## [18.3.2](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.1...v18.3.2) (2026-01-08)
+
+
+### Bug Fixes
+
+* **adapters:** anthropic token count fixes ([#2624](https://github.com/olimorris/codecompanion.nvim/issues/2624)) ([3c1b2e3](https://github.com/olimorris/codecompanion.nvim/commit/3c1b2e31ada2e25932fbaab6917db23c313084db))
+* **chat:** add context via visual selector ([#2622](https://github.com/olimorris/codecompanion.nvim/issues/2622)) ([bae898d](https://github.com/olimorris/codecompanion.nvim/commit/bae898dd0dcfffd03a78856e4df57cbe78e8ac79))
+* **tools:** gemini incorrect tool args ([#2629](https://github.com/olimorris/codecompanion.nvim/issues/2629)) ([848f3de](https://github.com/olimorris/codecompanion.nvim/commit/848f3dea824e5483d1bcc1cfb63d7158b81d95f6)), closes [#2620](https://github.com/olimorris/codecompanion.nvim/issues/2620)
+
+## [18.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.3.0...v18.3.1) (2025-12-28)
+
+
+### Bug Fixes
+
+* **adapters:** increase timeout for env var cmds ([#2601](https://github.com/olimorris/codecompanion.nvim/issues/2601)) ([c265e25](https://github.com/olimorris/codecompanion.nvim/commit/c265e25786ca0f2d1a07b4ceaa120ecbafcc5204)), closes [#2594](https://github.com/olimorris/codecompanion.nvim/issues/2594)
+* **chat:** remove images from title prompt ([#2586](https://github.com/olimorris/codecompanion.nvim/issues/2586)) ([274b2c6](https://github.com/olimorris/codecompanion.nvim/commit/274b2c69ea17d7f417999b132d81d63eb2cdb73f))
+
+## [18.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v18.2.1...v18.3.0) (2025-12-22)
+
+
+### Features
+
+* **adapters:** update Anthropic models ([#2556](https://github.com/olimorris/codecompanion.nvim/issues/2556)) ([4790ea4](https://github.com/olimorris/codecompanion.nvim/commit/4790ea4e413cd828165994a4dc023da728873fa1))
+* **chat:** system prompt to include filepath ([#2580](https://github.com/olimorris/codecompanion.nvim/issues/2580)) ([24a48e4](https://github.com/olimorris/codecompanion.nvim/commit/24a48e49792f28f35cb2343a298f6397f95ffe16))
+* **tools:** better approvals ([#2569](https://github.com/olimorris/codecompanion.nvim/issues/2569)) ([837514b](https://github.com/olimorris/codecompanion.nvim/commit/837514bae59ef25c3d86f54d2c748e6a239714c3))
+
+
+### Bug Fixes
+
+* **adapters:** gemini reasoning ([#2572](https://github.com/olimorris/codecompanion.nvim/issues/2572)) ([96b15d4](https://github.com/olimorris/codecompanion.nvim/commit/96b15d47561469f318c03f1ce11498340513c1ea)), closes [#2571](https://github.com/olimorris/codecompanion.nvim/issues/2571)
+* **inline:** leave visual mode after making inline request ([#2562](https://github.com/olimorris/codecompanion.nvim/issues/2562)) ([bdf697d](https://github.com/olimorris/codecompanion.nvim/commit/bdf697dae74de9a23b8b1842183261f2f538bb87))
+
 ## [18.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v18.2.0...v18.2.1) (2025-12-19)
 
 

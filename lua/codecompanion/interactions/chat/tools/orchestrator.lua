@@ -1,3 +1,4 @@
+local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
 local log = require("codecompanion.utils.log")
@@ -113,8 +114,6 @@ function Orchestrator.new(tools, id)
     tools = tools,
   }, { __index = Orchestrator })
 
-  _G.codecompanion_cancel_tool = false
-
   return self
 end
 
@@ -126,7 +125,6 @@ function Orchestrator:_setup_handlers()
       if not self.tool then
         return
       end
-      _G.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
         return self.tool.handlers.setup(self.tool, self.tools)
       end
@@ -153,11 +151,20 @@ function Orchestrator:_setup_handlers()
   }
 
   self.output = {
+    cmd_string = function()
+      if not self.tool then
+        return
+      end
+      if self.tool.output and self.tool.output.cmd_string then
+        return self.tool.output.cmd_string(self.tool, { tools = self.tools })
+      end
+      return nil
+    end,
+
     prompt = function()
       if not self.tool then
         return
       end
-
       if self.tool.output and self.tool.output.prompt then
         return self.tool.output.prompt(self.tool, self.tools)
       end
@@ -224,6 +231,7 @@ end
 ---@param self CodeCompanion.Tools.Orchestrator
 ---@return nil
 function Orchestrator:_finalize_tools()
+  self.tools.tool = nil
   return utils.fire("ToolsFinished", { id = self.id, bufnr = self.tools.bufnr })
 end
 
@@ -250,7 +258,10 @@ function Orchestrator:setup_next_tool(input)
   log:debug("[Orchestrator::setup_next_tool] `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
-  if self.tool.opts and not vim.g.codecompanion_yolo_mode then
+  if
+    self.tool.opts
+    and not Approvals:is_approved(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
+  then
     local require_approval_before = self.tool.opts.require_approval_before
 
     if require_approval_before and type(require_approval_before) == "function" then
@@ -282,7 +293,7 @@ function Orchestrator:setup_next_tool(input)
 
         if choice == 1 or choice == 2 then
           if choice == 1 then
-            vim.g.codecompanion_yolo_mode = true
+            Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
           end
           return self:execute_tool({ cmd = cmd, input = input })
         elseif choice == 3 then

@@ -8,9 +8,36 @@ Before contributing a PR, please open up a discussion to talk about it. While I 
 
 The plugin has adopted semantic versioning. As such, any PR which breaks the existing API is unlikely to be merged.
 
+### CodeCompanion is Omakase
+
+In Japanese cuisine, omakase means _"I'll leave it up to you"_ - the diner allows the chef to carefully select each course. CodeCompanion follows this philosophy: carefully curated features, rather than an all-you-can-eat buffet of every possible feature. In the world of LLMs, this means that CodeCompanion will never be at the bleeding edge. However, what it sacrifices in novelty, it makes up for in stability, reliability, and a great user experience.
+
+**Breaking this down:**
+- **Intentional over exhaustive** - Each new feature is carefully considered against the whole menu rather than just the course itself
+- **Complementary** - New features compliment the dish rather than acting like an unnecessary side
+- **Maintainable** - Every addition is code that I commit to maintaining indefinitely
+
+### AI-Assisted Contributions
+
+While CodeCompanion itself is a tool for AI-assisted development, that does not mean I am willing to accept "vibe-coded" contributions - PRs where the contributor used an LLM to generate code but doesn't deeply understand what they're submitting.
+
+**Red flags:**
+- User cannot explain implementation decisions when asked
+- Code doesn't match existing architectural patterns
+- Tests appear comprehensive but don't actually validate edge cases
+- Generic LLM patterns (overly defensive coding, verbose comments)
+
+**What I Expect**:
+- **Understand** the codebase before contributing (use the rules, read the tests, explore the architecture)
+- **Own** your contribution - you should be able to explain every line you submit
+- **Test** thoroughly - write tests that demonstrate you understand the feature
+- **Iterate** based on feedback - PRs are conversations, not fire-and-forget submissions
+
+> As a rule of thumb, use an LLM to create a feature _OR_ a test. But never both.
+
 ## How to Contribute
 
-1. Open up a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions) to propose your idea.
+1. Open up a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions) to propose your idea - Save yourself time and effort by checking this is a feature that aligns with the project's goals.
 2. Fork the repository and create your branch from `main`.
 3. Add your feature or fix to your branch.
 4. Ensure your code follows the project's coding style and conventions.
@@ -27,20 +54,13 @@ They're located [here](https://codecompanion.olimorris.dev) and are regularly up
 
 ### Use Rules
 
-When working inside the CodeCompanion repository, you have access to the built-in [rule](https://codecompanion.olimorris.dev/usage/chat-buffer/rules) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, memory is a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
+When working inside the CodeCompanion repository, you have access to the built-in [rule](https://codecompanion.olimorris.dev/usage/chat-buffer/rules) files. These give an LLM knowledge of how a certain aspect of the plugin has been implemented. If you're looking to add a new feature to CodeCompanion, rules are a great way of ensuring you follow existing practices and that your LLM fully understands the architecture and design decisions that have been made.
 
-You can load memory into the chat via the Action Palette:
+You can load rules into the chat via the Action Palette:
 
 <img src="https://github.com/user-attachments/assets/7ea80fd0-136e-4d7e-9d70-f4d08dec005c">
 
-Or, via the `/rules` slash command. Currently, the memory files that have been added are:
-
-- ACP
-- Adapters
-- Chat
-- Tests
-- Tools
-- UI
+Or, via the `/rules` slash command.
 
 ### Refer to the Tests
 

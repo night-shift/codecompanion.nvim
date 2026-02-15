@@ -40,6 +40,7 @@
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
+---@field acp_command? string The command to use to connect via ACP
 ---@field acp_session_id? string The ACP session ID which links to this chat buffer
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
@@ -103,14 +104,12 @@ Use Markdown formatting in your answers.
 DO NOT use H1 or H2 headers in your response.
 When suggesting code changes or new content, use Markdown code blocks.
 To start a code block, use 4 backticks.
-After the backticks, add the programming language name as the language ID.
+After the backticks, add the programming language name as the language ID and the file path within curly braces if available.
 To close a code block, use 4 backticks on a new line.
-If the code modifies an existing file or should be placed at a specific location, add a line comment with 'filepath:' and the file path.
-If you want the user to decide where to place the code, do not add the file path comment.
-In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
+If you want the user to decide where to place the code, do not add the file path.
+In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file. Ensure this comment is specific to the programming language.
 Code block example:
-````languageId
-// filepath: /path/to/file
+````languageId {path/to/file}
 // ...existing code...
 { changed code }
 // ...existing code...
@@ -121,7 +120,7 @@ Ensure line comments use the correct syntax for the programming language (e.g. "
 For code blocks use four backticks to start and end.
 Avoid wrapping the whole response in triple backticks.
 Do not include diff formatting unless explicitly asked.
-Do not include line numbers in code blocks.
+Do not include line numbers unless explicitly asked.
 
 When given a task:
 1. Think step-by-step and, unless the user requests otherwise or the task is very simple. For complex architectural changes, describe your plan in pseudocode first.
@@ -497,6 +496,9 @@ function Chat.new(args)
     -- Initialize ACP connection early to receive available_commands_update
     -- Connection happens asynchronously; commands can arrive 1-5 seconds later, at least on claude code
     vim.schedule(function()
+      if args.acp_command then
+        self.adapter.commands.selected = self.adapter.commands[args.acp_command]
+      end
       helpers.create_acp_connection(self)
     end)
   end
@@ -516,6 +518,7 @@ function Chat.new(args)
 
   self.ui = require("codecompanion.interactions.chat.ui").new({
     adapter = self.adapter,
+    aug = self.aug,
     chat_id = self.id,
     chat_bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
@@ -677,23 +680,19 @@ function Chat:apply_settings(settings)
 end
 
 ---Change the adapter in the chat buffer
----@param name string
----@param model? string
-function Chat:change_adapter(name, model)
+---@param adapter string
+function Chat:change_adapter(adapter)
   local function fire()
     return utils.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
   end
 
-  self.adapter = require("codecompanion.adapters").resolve(name)
+  self.adapter = require("codecompanion.adapters").resolve(adapter)
   self.ui.adapter = self.adapter
 
   if self.adapter.type == "acp" then
-    return
-  end
-
-  if model then
-    self:apply_model_or_command({ model = model })
-    return fire()
+    -- We need to ensure the connection is created before proceeding so that
+    -- users are given a choice of models to select from
+    helpers.create_acp_connection(self)
   end
 
   self:set_system_prompt()
@@ -703,26 +702,29 @@ function Chat:change_adapter(name, model)
 end
 
 ---Set a model in the chat buffer
----@param args { model?: string, command?: table }
+---@param args { model?: string }
 ---@return CodeCompanion.Chat
-function Chat:apply_model_or_command(args)
-  if args and args.command then
-    self.adapter.commands.selected = args.command
-    helpers.create_acp_connection(self)
-  elseif args.model then
+function Chat:change_model(args)
+  local function apply()
+    return adapters.set_model({ acp_connection = self.acp_connection, adapter = self.adapter, model = args.model })
+  end
+
+  if self.adapter.type == "http" then
     self.settings.model = args.model
     self.adapter.schema.model.default = args.model
-    self.adapter = adapters.set_model(self.adapter)
+    self.adapter = apply()
 
     self:set_system_prompt()
     self:apply_settings()
+  elseif self.adapter.type == "acp" then
+    apply()
   end
 
   self:update_metadata()
   utils.fire("ChatModel", {
-    bufnr = self.bufnr,
     adapter = adapters.make_safe(self.adapter),
-    model = args.model or args.command,
+    bufnr = self.bufnr,
+    model = args.model,
   })
 
   return self
@@ -1447,7 +1449,6 @@ function Chat:stop()
     local tool_job = self.current_tool
     self.current_tool = nil
 
-    _G.codecompanion_cancel_tool = true
     pcall(function()
       tool_job.cancel()
     end)
@@ -1508,9 +1509,6 @@ function Chat:close()
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
-  end
-  if self.ui.aug then
-    api.nvim_clear_autocmds({ group = self.ui.aug })
   end
   if self.adapter.type == "acp" and self.acp_connection then
     self.acp_connection:disconnect()
@@ -1631,22 +1629,25 @@ end
 ---@return nil
 function Chat:update_metadata()
   local model
+  local mode_info
+
   if self.adapter.type == "http" then
     model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
-  end
+  elseif self.adapter.type == "acp" and self.acp_connection then
+    model = self.acp_connection._models and self.acp_connection._models.currentModelId or "default"
 
-  local mode_info
-  if self.adapter.type == "acp" and self.acp_connection then
-    local modes = self.acp_connection:get_modes()
-    if modes and modes.currentModeId then
-      mode_info = {
-        current = modes.currentModeId,
-      }
-      -- Get the mode name for display
-      for _, mode in ipairs(modes.availableModes or {}) do
-        if mode.id == modes.currentModeId then
-          mode_info.name = mode.name
-          break
+    if self.acp_connection.get_modes then
+      local modes = self.acp_connection:get_modes()
+      if modes and modes.currentModeId then
+        mode_info = {
+          current = modes.currentModeId,
+        }
+        -- Get the mode name for display
+        for _, mode in ipairs(modes.availableModes or {}) do
+          if mode.id == modes.currentModeId then
+            mode_info.name = mode.name
+            break
+          end
         end
       end
     end

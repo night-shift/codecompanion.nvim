@@ -1,5 +1,5 @@
 ---
-description: Technical reference for ACP protocol implementation in CodeCompanion
+description: How CodeCompanion implements the Agent Client Protocol (ACP)
 ---
 
 # ACP Protocol Reference
@@ -26,14 +26,10 @@ CodeCompanion provides comprehensive support for the ACP specification:
 | **Agent Plans** | ❌ | Visual display of an agent's execution plan |
 | **Terminal Operations** | ❌        | Terminal capabilities not implemented |
 
+
 ### Supported Adapters
 
-| Adapter | Description | Special Features |
-|---------|-------------|------------------|
-| **Claude Code** | Anthropic's Claude Code CLI | OAuth authentication, tool output trimming |
-| **Gemini CLI** | Google's Gemini CLI | Multiple auth methods (OAuth, API key, Vertex AI), YOLO mode |
-| **Auggie CLI** | Augment Code CLI | Standard ACP support |
-| **Codex** | OpenAI Codex | Full ACP implementation |
+Please see the [Configuring ACP Adapters](/configuration/adapters-acp) page.
 
 ### Client Capabilities
 
@@ -51,6 +47,7 @@ CodeCompanion advertises the following capabilities to ACP agents:
 
 ### Content Support
 
+
 | Content Type | Send to Agent | Receive from Agent |
 |--------------|---------------|-------------------|
 | Text | ✅ | ✅ |
@@ -58,6 +55,7 @@ CodeCompanion advertises the following capabilities to ACP agents:
 | Embedded Resources | ✅ | ✅ |
 | Audio | ❌ | ❌ |
 | File Diffs | N/A | ✅ |
+
 
 ### Session Updates Handled
 
@@ -91,6 +89,10 @@ When sending files as embedded resources to agents, CodeCompanion re-reads the f
 
 ACP agents can advertise their own slash commands dynamically. You can access them with `\command` in the chat buffer. CodeCompanion transforms this to `/command` before sending your prompt to the agent.
 
+### Model Selection
+
+CodeCompanion implements a `session/set_model` method that allows you to select a model for the current session. This feature is not part of the [official ACP specification](https://agentclientprotocol.com/protocol/draft/schema#session-set_model) and is subject to change in future versions.
+
 ### Graceful Degradation
 
 CodeCompanion checks an agent's capabilities during initialization and gracefully falls back to supported content types. For example, if an agent doesn't support embedded context, files are sent as plain text instead.
@@ -121,10 +123,6 @@ The protocol version is negotiated during initialization. If an agent selects a 
 
 - **Agent Plan Rendering**: [Plan](https://agentclientprotocol.com/protocol/agent-plan) updates from agents are received and logged, but they're not currently rendered in the chat buffer UI.
 
-- **Cancellation**: The `session/cancel` notification isn't currently sent by the client, though CodeCompanion properly handles cancelled states when agents report them.
-
-- **Model Selection**: The `session/set_model` method isn't implemented, as this feature is currently marked as unstable in the ACP specification.
-
 - **Audio Content**: Audio content blocks aren't sent in prompts, despite capability detection.
 
 ## See Also
@@ -132,10 +130,4 @@ The protocol version is negotiated during initialization. If an agent selects a 
 - [Configuring ACP Adapters](/configuration/adapters-acp) - Setup instructions for specific agents
 - [Using Agents](/usage/chat-buffer/agents) - How to interact with agents in chat
 - [Agent Client Protocol Specification](https://agentclientprotocol.com/) - Official ACP documentation
-
-
-
-
-
-
 

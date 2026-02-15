@@ -40,7 +40,7 @@ require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- inline|split|mini.diff
+      provider = providers.diff, -- inline|split|mini_diff
     },
   },
 })
@@ -372,31 +372,65 @@ require("codecompanion").setup({
 
 ### Approvals
 
-Some tools, such as [cmd_runner](/usage/chat-buffer/tools.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
+CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution.
 
-```lua
+::: code-group
+
+```lua [Require Approval] {7}
 require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
         ["cmd_runner"] = {
           opts = {
-            require_approval_before = false,
+            require_approval_before = true,
           },
         },
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
-You can also force any tool to require your approval by adding in `opts.require_approval_before = true`.
+```lua [Require Cmd Approval] {7}
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["cmd_runner"] = {
+          opts = {
+            require_cmd_approval = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+```lua [No YOLO'ing] {7}
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["cmd_runner"] = {
+          opts = {
+            allowed_in_yolo_mode = false,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+:::
 
 ### Auto Submit (Recursion)
 
 When a tool executes, it can be useful to automatically send its output back to the LLM. This can be achieved by the following options in your configuration:
 
-```lua
+```lua {6-7}
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -415,7 +449,7 @@ require("codecompanion").setup({
 
 You can configure the plugin to automatically add tools and tool groups to new chat buffers:
 
-```lua
+```lua {6-9}
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -531,8 +565,8 @@ require("codecompanion").setup({
         full_height = true, -- for vertical layout
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
 
-        width = 0.5, ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
-        height = 0.8,
+        width = 0.5, ---@return number|fun(): number
+        height = 0.8, ---@return number|fun(): number
         border = "single",
         relative = "editor",
 
@@ -542,22 +576,6 @@ require("codecompanion").setup({
           linebreak = true,
           wrap = true,
         },
-      },
-    },
-  },
-})
-```
-
-```lua [Debug Window]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      -- Alter the sizing of the debug window
-      debug_window = {
-        ---@return number|fun(): number
-        width = vim.o.columns - 5,
-        ---@return number|fun(): number
-        height = vim.o.lines - 2,
       },
     },
   },

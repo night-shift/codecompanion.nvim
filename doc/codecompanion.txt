@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11        Last change: 2025 December 19
+*codecompanion.txt*        For NVIM v0.11        Last change: 2026 February 06
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -307,7 +307,8 @@ WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
   Or, see the user contributed adapters
   |codecompanion-configuration-adapters-http-community-adapters|
-An adapter is what connects Neovim to an LLM or an agent. It’s the interface
+An adapter is what connects Neovim to an LLM (via `HTTP`) or an agent (via ACP
+<https://agentclientprotocol.com/overview/introduction>). It’s the interface
 that allows data to be sent, received and processed. In order to use the
 plugin, you need to make sure you’ve configured an adapter first:
 
@@ -315,11 +316,13 @@ plugin, you need to make sure you’ve configured an adapter first:
     require("codecompanion").setup({
       interactions = {
         chat = {
+          -- You can specify an adapter by name and model (both ACP and HTTP)
           adapter = {
             name = "copilot",
             model = "gpt-4.1",
           },
         },
+        -- Or, just specify the adapter by name
         inline = {
           adapter = "anthropic",
         },
@@ -337,10 +340,13 @@ plugin, you need to make sure you’ve configured an adapter first:
 <
 
 In the example above, we’re using the Copilot adapter for the chat
-interaction and the Anthropic one for the inline.
+interaction and the Anthropic one for the inline. We’re also using something
+cheap for the background adapter (although these interactions are opt-in). You
+can mix and match adapters as you see fit for your workflow.
 
 
-  [!IMPORTANT] ACP adapters are only supported for the chat interction.
+  [!IMPORTANT] |codecompanion-configuration-adapters-acp| are only supported for
+  the chat interaction.
 There are two "types" of adapter in CodeCompanion;
 |codecompanion-configuration-adapters-http| adapters which connect you to an
 LLM and |codecompanion-configuration-adapters-acp| adapters which leverage the
@@ -400,9 +406,6 @@ You can add context from your code base by using `Variables` and `Slash
 Commands` in the chat buffer.
 
 
-  [!IMPORTANT] As of `v17.5.0`, variables and tools are now wrapped in curly
-  braces, such as `#{buffer}` or `@{files}`
-
 VARIABLES ~
 
 `Variables`, accessed via `#`, contain data about the present state of Neovim.
@@ -433,8 +436,8 @@ external tools. You can find a list of available tools as well as how to use
 them, |codecompanion-usage-chat-buffer-tools.html-available-tools|.
 
 
-  [!TIP] Use them in your prompt like: `Can you use the @{grep_search} tool to
-  find occurrences of "add_message"`
+  [!TIP] Use them in your prompt like:
+  `Can you use @{grep_search} to find occurrences of "hello world"`
 
 INLINE ASSISTANT              *codecompanion-getting-started-inline-assistant*
 
@@ -498,9 +501,10 @@ However, there are multiple options available:
 
 - `CodeCompanion <prompt>` - Prompt the inline assistant
 - `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline assistant with a specific adapter
-- `CodeCompanion /<prompt library>` - Call an item from the |codecompanion-configuration-prompt-library|
+- `CodeCompanion /<prompt library>` - Call an item via its alias from the |codecompanion-configuration-prompt-library|
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
-- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific adapter and model
+- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
+- `CodeCompanionChat adapter=<adapter> command=<command>` - Open a chat buffer with a specific ACP adapter and command
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
@@ -682,6 +686,32 @@ This section contains configuration which is specific to Agent Client Protocol
 (ACP) adapters only. There is a lot of shared functionality between ACP and
 |codecompanion-configuration-adapters-http| adapters. Therefore it’s
 recommended you read the two pages together.
+
+
+CHANGING THE DEFAULT ADAPTER ~
+
+You can select an ACP adapter to be the default for all chat interactions:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = "gemini_cli",
+        },
+      },
+    }),
+<
+
+
+CHANGING THE DEFAULT MODEL ~
+
+You can change the default model used by an ACP adapter. For example, to change
+the default model for the Claude Code adapter:
+
+
+Using a `function` is useful for working around the limitations
+<https://github.com/zed-industries/claude-code-acp/issues/225> in the Claude
+Code SDK (which enables ACP support).
 
 
 CHANGING ADAPTER SETTINGS ~
@@ -908,9 +938,17 @@ SETUP: KIMI CLI ~
 
 Install Kimi CLI
 <https://github.com/MoonshotAI/kimi-cli?tab=readme-ov-file#installation> as per
-their instructions. Then in the CLI, run `kimi` followed by `/setup` to
+their instructions. Then in the CLI, run `kimi` followed by `/login` to
 configure your API key. Then ensure that in your chat buffer you select the
 `kimi_cli` adapter.
+
+
+SETUP: KIRO CLI ~
+
+Install Kiro cli <https://kiro.dev/docs/cli/> as per their instructions. Then
+open it and login (if installation doesn’t already prompt you to login). the
+codecompanion adapter will execute `kiro-cli acp`, make sure to have it
+available on your PATH.
 
 
 SETUP: OPENCODE ~
@@ -920,60 +958,13 @@ followed their documentation to install <https://opencode.ai/docs/#install> and
 configure <https://opencode.ai/docs/#configure> it. Then ensure that in your
 chat buffer you select the `opencode` adapter.
 
-You will need to configure a default model in your
-`~/.config/opencode/config.json` file:
+You can specify a custom model in your `~/.config/opencode/config.json` file:
 
 >json
     {
         "$schema": "https://opencode.ai/config.json",
         "model": "github-copilot/claude-sonnet-4.5",
     }
-<
-
-Alternatively, you can set up various models in the adapter itself:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        acp = {
-          opencode = function()
-            return require("codecompanion.adapters").extend("opencode", {
-              commands = {
-                -- The default uses the opencode/config.json value
-                default = {
-                  "opencode",
-                  "acp",
-                },
-                copilot_sonnet_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "github-copilot/claude-sonnet-4.5",
-                },
-                copilot_opus_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "github-copilot/claude-opus-4.5",
-                },
-                anthropic_sonnet_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "anthropic/claude-sonnet-4.5",
-                },
-                anthropic_opus_4_5 = {
-                  "opencode",
-                  "acp",
-                  "-m",
-                  "anthropic/claude-opus-4.5",
-                },
-              },
-            })
-          end,
-        },
-      },
-    })
 <
 
 
@@ -997,13 +988,12 @@ The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
 different options available. HTTP adapters use `models` to allow users to
 select the specific LLM they’d like to interact with. ACP adapters use
-`commands` to allow users to customize their interaction with agents
-(e.g. enabling `yolo` mode). As there is a lot of shared functionality between
-the two adapters, it is recommend that you read this page alongside the ACP
-one.
+`commands` to allow users to customize their interaction with agents (e.g.�
+enabling `yolo` mode). As there is a lot of shared functionality between the
+two adapters, it is recommend that you read this page alongside the ACP one.
 
 
-CHANGING AN ADAPTER ~
+CHANGING THE DEFAULT ADAPTER ~
 
 You can change the default adapter for each interaction as follows:
 
@@ -1024,7 +1014,7 @@ You can change the default adapter for each interaction as follows:
 <
 
 
-CHANGING A MODEL ~
+CHANGING THE DEFAULT MODEL ~
 
 A core part of working with CodeCompanion is being able to easily switch
 between adapters and LLMs. Below are two examples of how this can be achieved.
@@ -1054,7 +1044,7 @@ the adapter’s URL, headers, parameters and other fields at runtime.
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Supported `env` value types: - **Plain environment variable name (string)**: if
 the value is the name of an environment variable that has already been set
-(e.g. `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
+(e.g.� `"HOME"` or `"GEMINI_API_KEY"`), the plugin will read the value. -
 **Command (string prefixed with cmd:)**: any value that starts with `cmd:` will
 be executed via the shell. Example: `"cmd:op read
 op://personal/Gemini/credential --no-newline"`. - **Function**: you can provide
@@ -1540,28 +1530,9 @@ dependency and want to refresh the tool availability in the chat buffer.
 
 APPROVALS
 
-Some tools, such as |codecompanion-usage-chat-buffer-tools.html-cmd-runner|,
-require the user to approve any commands before they’re executed. This can be
-changed by altering the config for each tool:
+CodeCompanion allows you to apply safety mechanisms to its built-in tools prior
+to execution.
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          tools = {
-            ["cmd_runner"] = {
-              opts = {
-                require_approval_before = false,
-              },
-            },
-          }
-        }
-      }
-    })
-<
-
-You can also force any tool to require your approval by adding in
-`opts.require_approval_before = true`.
 
 
 AUTO SUBMIT (RECURSION)
@@ -1569,20 +1540,10 @@ AUTO SUBMIT (RECURSION)
 When a tool executes, it can be useful to automatically send its output back to
 the LLM. This can be achieved by the following options in your configuration:
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          tools = {
-            opts = {
-              auto_submit_errors = true, -- Send any errors to the LLM automatically?
-              auto_submit_success = true, -- Send any successful output to the LLM automatically?
-            },
-          }
-        }
-      }
-    })
-<
+`lua {6-7} require("codecompanion").setup({ interactions = { chat = { tools = {
+opts = { auto_submit_errors = true, -- Send any errors to the LLM
+automatically? auto_submit_success = true, -- Send any successful output to the
+LLM automatically? }, } } } })`
 
 
 DEFAULT TOOLS
@@ -1590,22 +1551,8 @@ DEFAULT TOOLS
 You can configure the plugin to automatically add tools and tool groups to new
 chat buffers:
 
->lua
-    require("codecompanion").setup({
-      interactions = {
-        chat = {
-          tools = {
-            opts = {
-              default_tools = {
-                "my_tool",
-                "my_tool_group"
-              }
-            },
-          }
-        }
-      }
-    })
-<
+`lua {6-9} require("codecompanion").setup({ interactions = { chat = { tools = {
+opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 
 This also works for |codecompanion-configuration-extensions|.
 
@@ -2021,7 +1968,7 @@ Parsers allow CodeCompanion to transform rules, affecting how they are shared
 in the chat buffer. This is particularly useful if you reference files in your
 rules. Currently, the plugin has two in-built parsers:
 
-- `claude` - which will import files into the chat buffer in the same way Claude Code does <https://docs.anthropic.com/en/docs/claude-code/memory#claude-md-imports>. Note, this requires rules to be `markdown` files
+- `claude` - which will import files into the chat buffer in the same way Claude Code does <https://code.claude.com/docs/en/memory#claude-md-imports>. Note, this requires rules to be `markdown` files
 - `CodeCompanion` - parses rules in the same ways as `claude` but allows for a system prompts to be extracted via a H2 "System Prompt" header
 - `none` - a blank parser which can be used to overwrite parsers that have been set on the default rules groups
 
@@ -2109,7 +2056,7 @@ Palette - `description` - Description shown in the Action Palette -
 
 **Optional frontmatter fields:** - `opts` - Additional options (see
 |codecompanion--options| section) - `context` - Pre-loaded context (see
-|codecompanion--prompts-with-context| section)
+|codecompanion--context-placeholders| section)
 
 **Prompt sections:** - `## system` - System messages that set the LLM’s
 behaviour - `## user` - User messages containing your requests
@@ -2751,7 +2698,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-tools-files| tool, combined with the
 |codecompanion-usage-chat-buffer-variables.html-buffer| variable or
@@ -2856,19 +2803,8 @@ CodeCompanion provides comprehensive support for the ACP specification:
 
 SUPPORTED ADAPTERS
 
-  -----------------------------------------------------------------------
-  Adapter         Description             Special Features
-  --------------- ----------------------- -------------------------------
-  Claude Code     Anthropic’s Claude Code OAuth authentication, tool
-                  CLI                     output trimming
+Please see the |codecompanion-configuration-adapters-acp| page.
 
-  Gemini CLI      Google’s Gemini CLI     Multiple auth methods (OAuth,
-                                          API key, Vertex AI), YOLO mode
-
-  Auggie CLI      Augment Code CLI        Standard ACP support
-
-  Codex           OpenAI Codex            Full ACP implementation
-  -----------------------------------------------------------------------
 
 CLIENT CAPABILITIES
 
@@ -2947,6 +2883,15 @@ them with `\command` in the chat buffer. CodeCompanion transforms this to
 `/command` before sending your prompt to the agent.
 
 
+MODEL SELECTION
+
+CodeCompanion implements a `session/set_model` method that allows you to select
+a model for the current session. This feature is not part of the official ACP
+specification
+<https://agentclientprotocol.com/protocol/draft/schema#session-set_model> and
+is subject to change in future versions.
+
+
 GRACEFUL DEGRADATION
 
 CodeCompanion checks an agent’s capabilities during initialization and
@@ -2990,11 +2935,6 @@ KNOWN LIMITATIONS ~
     <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they’re not currently rendered in the chat buffer
     UI.
-- **Cancellation**: The `session/cancel` notification isn’t currently sent by
-    the client, though CodeCompanion properly handles cancelled states when agents
-    report them.
-- **Model Selection**: The `session/set_model` method isn’t implemented, as
-    this feature is currently marked as unstable in the ACP specification.
 - **Audio Content**: Audio content blocks aren’t sent in prompts, despite
     capability detection.
 
@@ -3035,7 +2975,7 @@ The plugin also contains two built-in workflows, `Code workflow` and `Edit test
 repeat workflow`. See the |codecompanion-usage-workflows| for more information.
 
 The built-in prompts can be turned off by setting
-`display.action_palette.show_preset_prompts = false`.
+`display.action_palette.opts.show_preset_prompts = false`.
 
 You can also refresh the markdown prompts in your prompt library with
 `:CodeCompanionActions refresh`
@@ -3067,7 +3007,7 @@ then streamed back into the buffer. A response is sent to the LLM by pressing
 |codecompanion--keymaps| section.
 
 
-CHANGING ADAPTER ~
+CHANGING ADAPTER AND MODEL ~
 
 
 
@@ -3075,9 +3015,18 @@ One of the joys of working with CodeCompanion is being able to switch between
 conversing with an LLM and an agent, all from within the chat buffer.
 
 To do this, simply press `ga` to open up the `Select Adapter` select window. If
-your chosen adapter has more than one model (in the case of HTTP adapters) or
-command (in the case of ACP adapters) then you’ll be prompted to make another
-selection.
+your chosen adapter has more than one model then you’ll be prompted to make
+another selection. This works for both `HTTP` and `ACP` adapters.
+
+
+CHANGING ACP COMMAND ~
+
+ACP adapters are initiated via a command in the configuration. By default, this
+will be the `default` command. Some ACP adapters have additional commands and
+these can be triggered via the cmd line with something like `:CodeCompanionChat
+adapter=gemini_cli command=yolo`, or you can use the
+|codecompanion-usage-chat-buffer-slash-commands-command| slash command within
+the chat buffer.
 
 
 COMPLETION ~
@@ -3298,6 +3247,15 @@ are the ones responsible for managing state. As a result, CodeCompanion only
 sends the latest messages over with every prompt. From a UX perspective
 however, neither of these have an impact on how it feels to work with
 CodeCompanion.
+
+
+CHANGING MODEL ~
+
+
+
+Sometimes it can be helpful to switch between models if you’re conscious of
+token consumption or changing workloads. You can do this within the chat buffer
+by pressing `ga` to open the change adapter/model picker.
 
 
 PROMPTING ~
@@ -3893,20 +3851,7 @@ In the `openai_responses` adapter, the following tools are available:
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 
 
-USEFUL TIPS ~
-
-
-YOLO MODE
-
-The plugin allows you to run tools on autopilot, with YOLO mode. This
-automatically approves any tool use instead of prompting the user, disables any
-diffs, submits errors and success messages and automatically saves any buffers
-that tools may have edited. In the chat buffer, the keymap `gty` will toggle
-YOLO mode on/off. Alternatively, set the global variable
-`vim.g.codecompanion_yolo_mode` to enable this or set it to `nil` to undo this.
-
-
-SECURITY AND APPROVALS ~
+SECURITY ~
 
 CodeCompanion takes security very seriously, especially in a world of agentic
 code development. To that end, every effort is made to ensure that LLMs are
@@ -3917,17 +3862,42 @@ is that the LLM can only work within the cwd when executing tools but will
 minimize actions that are hard to recover from
 <https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7>.
 
-The plugin also puts approvals at the heart of its workflow. Some tools, such
-as the |codecompanion--cmd-runner|, require the user to approve any actions
-before they can be executed. If the tool requires this a `vim.fn.confirm`
-dialog will prompt you for a response. You may also
-|codecompanion-configuration-chat-buffer-approvals| an approval for `any` tool.
 
-When using CodeCompanion’s in-built tools, there are three choices:
+APPROVALS
 
-1. **Approve** - The tool will be executed
-2. **Reject** - The tool will **NOT** be executed
-3. **Cancel** - All tools in the queue will **NOT** be executed
+
+  [!NOTE] This applies to CodeCompanion’s built-in tools only. ACP agents have
+  their own tools and approval systems.
+In order to give developers the confidence to use tools, CodeCompanion has
+implemented a comprehensive approval system for it’s built-in tools.
+
+CodeCompanion segregates tool approvals by chat buffer and by tool. This means
+that if you approve a tool in one chat buffer, it is `not` approved for use
+anywhere else. Similarly, if you approve a tool once, you’ll be prompted to
+approve it again next time it’s executed.
+
+When prompted, the user has four options available to them:
+
+- **Allow always** - Always allow this tool/cmd to be executed without further prompts
+- **Allow once** - Allow this tool/cmd to be executed this one time
+- **Reject** - Reject the execution of this tool/cmd and provide a reason
+- **Cancel** - Cancel this tool execution and all other pending tool executions
+
+Certain tools with potentially destructive capabilities have an additional
+layer of protection. Instead of being approved at a tool level, these are
+approved at a command level. Taking the `cmd_runner` tool as an example. If you
+approve an agent to always run `make format`, if it tries to run `make test`,
+you’ll be prompted to approve that command specifically.
+
+Approvals can be reset for the given chat buffer by using the `gtx` keymap.
+
+
+YOLO MODE
+
+To bypass the approval system, you can use `gty` in the chat buffer to enable
+YOLO mode. This will automatically approve all tool executions without
+prompting the user. However, note that some tools such as `cmd_runner` and
+`delete_file` are excluded from this.
 
 
 COMPATIBILITY ~
@@ -3986,6 +3956,16 @@ The `buffer` slash command enables you to add the contents of any open buffers
 in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 `fzf.lua` and `snacks.nvim` providers available. Also, multiple buffers can be
 selected and added to the chat buffer as per the video above.
+
+
+/COMMAND ~
+
+The `command` slash command is specific to
+|codecompanion-configuration-adapters-acp| adapters and allows users to switch
+between different adapter commands. For instance, some ACP adapters may allow
+you to run the agent command with a specific flag. Be mindful that switching
+commands is destructive and essentially resets the chat buffer for the purposes
+of a conversation with an agent.
 
 
 /COMPACT ~
@@ -4053,7 +4033,7 @@ The `rules` slash command allows you to add
 /MODE ~
 
 The `mode` slash command is specific to
-|codecompanion-configuration-adapters-acp| adapters allows users to switch
+|codecompanion-configuration-adapters-acp| adapters and allows users to switch
 between different agent operating modes, as per the protocol
 <https://agentclientprotocol.com/protocol/session-modes> docs.
 
@@ -4670,7 +4650,7 @@ These handlers manage tool/function calling:
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -5308,10 +5288,75 @@ CREATING AGENTIC WORKFLOWS ~
 By combining a workflow with tools, we can use an LLM to act as an Agent and do
 some impressive things!
 
-A great example of that is the `Edit<->Test` workflow that come with the
-plugin. This workflow asks the LLM to edit code in a buffer and then run a test
-suite, feeding the output back to the LLM to then make future edits if
+A great example of that is the `Edit<->Test` workflow that originally came with
+the plugin. This workflow asked the LLM to edit code in a buffer and then run a
+test suite, feeding the output back to the LLM to then make future edits if
 required.
+
+::: details The full `Edit<->Test` workflow code can be found below:
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Edit<->Test workflow"] = {
+          strategy = "workflow",
+          description = "Use a workflow to repeatedly edit then test code",
+          opts = {
+            index = 5,
+            is_default = true,
+            short_name = "et",
+          },
+          prompts = {
+            {
+              {
+                name = "Setup Test",
+                role = "user",
+                opts = { auto_submit = false },
+                content = function()
+                  -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
+                  local approvals = require("codecompanion.interactions.chat.tools.approvals")
+                  approvals:toggle_yolo_mode()
+    
+                  return [[### Instructions
+    
+    Your instructions here
+    
+    ### Steps to Follow
+    
+    You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
+    
+    1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
+    2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+    3. Make sure you trigger both tools in the same response
+    
+    We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
+                end,
+              },
+            },
+            {
+              {
+                name = "Repeat On Failure",
+                role = "user",
+                opts = { auto_submit = true },
+                -- Scope this prompt to the cmd_runner tool
+                condition = function()
+                  return _G.codecompanion_current_tool == "cmd_runner"
+                end,
+                -- Repeat until the tests pass, as indicated by the testing flag
+                -- which the cmd_runner tool sets on the chat buffer
+                repeat_until = function(chat)
+                  return chat.tool_registry.flags.testing == true
+                end,
+                content = "The tests have failed. Can you edit the buffer and run the test suite again?",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+:::
 
 Let’s breakdown the prompts in that workflow:
 
@@ -5320,11 +5365,12 @@ Let’s breakdown the prompts in that workflow:
       {
         {
           name = "Setup Test",
-          role = constants.USER_ROLE,
+          role = "user",
           opts = { auto_submit = false },
           content = function()
             -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
-            vim.g.codecompanion_yolo_mode = true
+            local approvals = require("codecompanion.interactions.chat.tools.approvals")
+            approvals:toggle_yolo_mode()
     
             -- Some clear instructions for the LLM to follow
             return [[### Instructions
@@ -5367,15 +5413,15 @@ Now let’s look at how we trigger the automated reflection prompts:
         {
           {
             name = "Repeat On Failure",
-            role = constants.USER_ROLE,
+            role = "user",
             opts = { auto_submit = true },
             -- Scope this prompt to only run when the cmd_runner tool is active
-            condition = function()
-              return _G.codecompanion_current_tool == "cmd_runner"
+            condition = function(chat)
+              return chat.tools.tool and chat.tools.tool.name == "cmd_runner"
             end,
             -- Repeat until the tests pass, as indicated by the testing flag
             repeat_until = function(chat)
-              return chat.tools.flags.testing == true
+              return chat.tool_registry.flags.testing == true
             end,
             content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },
@@ -6400,7 +6446,7 @@ tool to function. In the case of Anthropic, we insert additional headers.
 <
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
-they’re an adapter tool that requires a client-side component (i.e. a
+they’re an adapter tool that requires a client-side component (i.e.� a
 built-in tool). This is the case for the
 |codecompanion-usage-chat-buffer-tools-memory| tool from Anthropic. To allow
 for this, ensure that the tool definition in `available_tools` has

@@ -181,7 +181,12 @@ return {
                 }
 
                 -- If next message is also from user with text content, combine them
-                if next_msg and next_msg.role == m.role and type(next_msg.content) == "string" then
+                if
+                  next_msg
+                  and next_msg.role == m.role
+                  and type(next_msg.content) == "string"
+                  and not (next_msg._meta and next_msg._meta.tag == "image")
+                then
                   table.insert(combined_content, {
                     type = "input_text",
                     text = next_msg.content,
@@ -463,7 +468,7 @@ return {
         if data and data ~= "" then
           local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
 
-          if not ok then
+          if not ok or not json.output then
             log:error("Error decoding JSON: %s", data.body)
             return { status = "error", output = json }
           end

@@ -6,7 +6,7 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 ---@field id number The ID of the inline prompt
 ---@field adapter CodeCompanion.HTTPAdapter The adapter to use for the inline prompt
 ---@field aug number The ID for the autocmd group
----@field buffer_context table The context of the buffer the inline prompt was initiated from
+---@field buffer_context CodeCompanion.BufferContext
 ---@field bufnr number The buffer number to apply the inline edits to
 ---@field chat_context? table The content from the last opened chat buffer
 ---@field classification CodeCompanion.Inline.Classification Where to place the generated code in Neovim
@@ -18,7 +18,7 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 
 ---@class CodeCompanion.InlineArgs
 ---@field adapter? CodeCompanion.HTTPAdapter
----@field buffer_context? table The context of the buffer the inline prompt was initiated from
+---@field buffer_context? CodeCompanion.BufferContext
 ---@field chat_context? table Messages from a chat buffer
 ---@field diff? table The diff provider
 ---@field lines? table The lines in the buffer before the inline changes
@@ -205,6 +205,9 @@ function Inline.new(args)
   self:set_adapter(args.adapter or config.interactions.inline.adapter)
   if not self.adapter then
     return log:error("[Inline] No adapter found")
+  end
+  if self.adapter.type ~= "http" then
+    return log:warn("Only HTTP adapters are supported for inline interactions")
   end
 
   -- Check if the user has manually overridden the adapter
@@ -711,7 +714,10 @@ end
 ---@return nil
 function Inline:start_diff(original_content)
   log:debug("[Inline] Starting diff with provider: %s", config.display.diff.provider)
-  if config.display.diff.enabled == false then
+
+  local approvals = require("codecompanion.interactions.chat.tools.approvals")
+
+  if approvals:is_approved(self.bufnr, { tool_name = "inline" }) or config.display.diff.enabled == false then
     return self:reset()
   end
 
@@ -719,7 +725,7 @@ function Inline:start_diff(original_content)
     return self:reset()
   end
 
-  self:set_keymaps(self.buffer_context.bufnr, { exclude_keymaps = { "stop" } })
+  self:set_keymaps(self.buffer_context.bufnr, { tool_name = "inline", exclude_keymaps = { "stop" } })
 
   local provider = config.display.diff.provider
   local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
@@ -730,11 +736,11 @@ function Inline:start_diff(original_content)
 
   self.diff = diff.new({
     bufnr = self.buffer_context.bufnr,
+    contents = original_content,
     cursor_pos = self.buffer_context.cursor_pos,
     filetype = self.buffer_context.filetype,
-    contents = original_content,
-    winnr = self.buffer_context.winnr,
     id = self.id,
+    winnr = self.buffer_context.winnr,
   })
 end
 

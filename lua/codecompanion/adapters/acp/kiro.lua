@@ -1,9 +1,9 @@
 local helpers = require("codecompanion.adapters.acp.helpers")
 
----@class CodeCompanion.ACPAdapter.KimiCLI: CodeCompanion.ACPAdapter
+---@class CodeCompanion.ACPAdapter.Kiro: CodeCompanion.ACPAdapter
 return {
-  name = "kimi_cli",
-  formatted_name = "Kimi CLI",
+  name = "kiro",
+  formatted_name = "Kiro",
   type = "acp",
   roles = {
     llm = "assistant",
@@ -14,7 +14,7 @@ return {
   },
   commands = {
     default = {
-      "kimi",
+      "kiro-cli",
       "acp",
     },
   },
@@ -39,11 +39,13 @@ return {
       return true
     end,
 
-    ---Kimi CLI is already authenticated through CLI /login(setup)
-    ---Returning true skips ACP authentication
+    ---Manually handle authentication
     ---@param self CodeCompanion.ACPAdapter
     ---@return boolean
     auth = function(self)
+      -- kiro-cli handles authentication exclusively through its kiro-cli CLI interface
+      -- Users are expected to login there and then can use the ACP after. auth is therefore
+      -- declared a success here to work around attempted authentication.
       return true
     end,
 

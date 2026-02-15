@@ -342,8 +342,14 @@ local function yank_node(node)
   local cursor_position = vim.fn.getcurpos()
 
   -- Create marks for the node range
-  vim.api.nvim_buf_set_mark(0, "[", start_row + 1, start_col, {})
-  vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
+  local ok, _ = pcall(function()
+    vim.api.nvim_buf_set_mark(0, "[", start_row + 1, start_col, {})
+    vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
+  end)
+
+  if not ok then
+    return utils.notify("Failed to copy code block", vim.log.levels.WARN)
+  end
 
   -- Yank using marks
   vim.cmd(string.format('normal! `["%sy`]', config.interactions.chat.opts.register))
@@ -559,16 +565,24 @@ M.clear_rules = {
   end,
 }
 
+M.clear_approvals = {
+  desc = "Clear approvals in the current buffer",
+  callback = function(chat)
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    approvals:reset(chat.bufnr)
+    return utils.notify("Cleared the approvals", vim.log.levels.INFO)
+  end,
+}
+
 M.yolo_mode = {
   desc = "Toggle YOLO mode",
   callback = function(chat)
-    if vim.g.codecompanion_yolo_mode then
-      vim.g.codecompanion_yolo_mode = nil
-      return utils.notify("YOLO mode disabled", vim.log.levels.INFO)
-    else
-      vim.g.codecompanion_yolo_mode = true
-      return utils.notify("YOLO mode enabled", vim.log.levels.INFO)
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    local status = approvals:toggle_yolo_mode(chat.bufnr)
+    if status then
+      return utils.notify("YOLO mode enabled!", vim.log.levels.INFO)
     end
+    return utils.notify("YOLO mode disabled!", vim.log.levels.INFO)
   end,
 }
 
@@ -630,7 +644,7 @@ M.copilot_stats = {
 M.super_diff = {
   desc = "Show super diff buffer",
   callback = function(chat)
-    require("codecompanion.interactions.chat.helpers.super_diff").show_super_diff(chat)
+    require("codecompanion.interactions.chat.super_diff").show_super_diff(chat)
   end,
 }
 

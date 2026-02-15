@@ -3,9 +3,6 @@ local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
 local transform = require("codecompanion.utils.tool_transformers")
 
-local input_tokens = 0
-local output_tokens = 0
-
 ---@class CodeCompanion.HTTPAdapter.Anthropic: CodeCompanion.HTTPAdapter
 return {
   name = "anthropic",
@@ -35,7 +32,10 @@ return {
     ["anthropic-version"] = "2023-06-01",
     ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
-  temp = {},
+  temp = {
+    input_tokens = 0,
+    output_tokens = 0,
+  },
   available_tools = {
     ["code_execution"] = {
       description = "The code execution tool allows Claude to run Bash commands and manipulate files, including writing code, in a secure, sandboxed environment",
@@ -157,7 +157,7 @@ return {
       local system = vim
         .iter(messages)
         :filter(function(msg)
-          return msg.role == "system"
+          return msg.role == "system" and msg.content and msg.content ~= ""
         end)
         :map(function(msg)
           return {
@@ -413,12 +413,13 @@ return {
 
         if ok then
           if json.type == "message_start" then
-            input_tokens = (json.message.usage.input_tokens or 0)
+            self.temp.input_tokens = (json.message.usage.input_tokens or 0)
               + (json.message.usage.cache_creation_input_tokens or 0)
+              + (json.message.usage.cache_read_input_tokens or 0)
 
-            output_tokens = json.message.usage.output_tokens or 0
+            self.temp.output_tokens = json.message.usage.output_tokens or 0
           elseif json.type == "message_delta" then
-            return (input_tokens + output_tokens + json.usage.output_tokens)
+            return (self.temp.input_tokens + self.temp.output_tokens + json.usage.output_tokens)
           elseif json.type == "message" then
             return (json.usage.input_tokens + json.usage.output_tokens)
           end
@@ -606,46 +607,40 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-sonnet-4-5-20250929",
+      default = "claude-sonnet-4-5",
       choices = {
-        ["claude-sonnet-4-5-20250929"] = {
-          formatted_name = "Claude Sonnet 4.5",
-          opts = { can_reason = true, has_vision = true },
-        },
-        ["claude-haiku-4-5-20251001"] = {
+        ["claude-haiku-4-5"] = {
           formatted_name = "Claude Haiku 4.5",
           opts = { can_reason = true, has_vision = true },
         },
-
-        ["claude-sonnet-4-20250514"] = {
-          formatted_name = "Claude Sonnet 4",
+        ["claude-opus-4-5"] = {
+          formatted_name = "Claude Opus 4.5",
           opts = { can_reason = true, has_vision = true },
         },
-        ["claude-3-7-sonnet-20250219"] = {
-          formatted_name = "Claude 3.7 Sonnet",
-          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
+        ["claude-sonnet-4-5"] = {
+          formatted_name = "Claude Sonnet 4.5",
+          opts = { can_reason = true, has_vision = true },
         },
-        ["claude-3-5-sonnet-20241022"] = {
-          formatted_name = "Claude Sonnet 3.5",
-          opts = { has_vision = true },
-        },
-        ["claude-opus-4-1-20250805"] = {
+        ["claude-opus-4-1"] = {
           formatted_name = "Claude Opus 4.1",
           opts = { can_reason = true, has_vision = true },
         },
-        ["claude-opus-4-20250514"] = {
+        ["claude-opus-4-0"] = {
           formatted_name = "Claude Opus 4",
           opts = { can_reason = true, has_vision = true },
         },
-        ["claude-3-5-haiku-20241022"] = {
+        ["claude-sonnet-4-0"] = {
+          formatted_name = "Claude Sonnet 4",
+          opts = { can_reason = true, has_vision = true },
+        },
+        ["claude-3-7-sonnet-latest"] = {
+          formatted_name = "Claude Sonnet 3.7",
+          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
+        },
+        ["claude-3-5-haiku-latest"] = {
           formatted_name = "Claude Haiku 3.5",
           opts = { has_vision = true },
         },
-        ["claude-3-opus-20240229"] = {
-          formatted_name = "Claude Opus 3",
-          opts = { has_vision = true },
-        },
-        "claude-2.1",
       },
     },
     ---@type CodeCompanion.Schema
